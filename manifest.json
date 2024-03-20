@@ -5,10 +5,6 @@
   "Description": "Immersive Scarecrows (originally by aedenthorn) made compatible with Stardew Valley 1.6",
   "UniqueID": "lucaskfreitas.ImmersiveScarecrows",
   "EntryDll": "ImmersiveScarecrows.dll",
-  "Dependencies": [
-    {
-      "UniqueID": "Platonymous.ModUpdater",
-      "IsRequired": false
-    }
-  ]
+  "MinimumApiVersion": "4.0.0",
+  "UpdateKeys": [ "Nexus:20701" ]
 }
