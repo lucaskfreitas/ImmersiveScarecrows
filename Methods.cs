@@ -17,32 +17,10 @@ namespace ImmersiveScarecrows
     {
         private static Object GetScarecrow(TerrainFeature tf, int which)
         {
-            if (!tf.modData.TryGetValue(scarecrowKey + which, out string scarecrowString))
+            if (!tf.modData.TryGetValue(scarecrowKey + which, out string scarecrowItemId))
                 return null;
 
-            Object obj = null;
-            foreach (var kvp in Game1.bigCraftablesInformation)
-            {
-                if (kvp.Value.Equals(scarecrowString))
-                {
-                    obj = new Object(Vector2.Zero, kvp.Key);
-                    break;
-                }
-            }
-            if(obj is null)
-            {
-                scarecrowString = scarecrowString.Split('/')[0];
-                foreach (var kvp in Game1.bigCraftablesInformation)
-                {
-                    if (kvp.Value.StartsWith(scarecrowString + "/"))
-                    {
-                        obj = new Object(Vector2.Zero, kvp.Key);
-                        break;
-                    }
-                }
-            }
-            if (obj is null)
-                return null;
+            var obj = new Object(Vector2.Zero, scarecrowItemId);
 
             if (atApi is not null)
             {
@@ -64,10 +42,7 @@ namespace ImmersiveScarecrows
 
             return obj;
         }
-        private static string GetScarecrowString(Object instance)
-        {
-            return Game1.bigCraftablesInformation.TryGetValue(instance.ParentSheetIndex, out var str) ? str : instance.Name;
-        }
+
         private static Vector2 GetScarecrowCorner(int i)
         {
             switch (i)
