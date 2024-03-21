@@ -231,7 +231,7 @@ namespace ImmersiveScarecrows
         }
         private static bool IsNoScarecrowInRange(Farm f, Vector2 v)
         {
-            //SMonitor.Log("Checking for scarecrows near crop");
+            SMonitor.Log("Checking for scarecrows near crop");
             foreach (var kvp in f.terrainFeatures.Pairs)
             {
                 if (kvp.Value is HoeDirt)
@@ -246,6 +246,7 @@ namespace ImmersiveScarecrows
                                 var tiles = GetScarecrowTiles(kvp.Key, i, obj.GetRadiusForScarecrow());
                                 if(tiles.Contains(v))
                                 {
+                                    SMonitor.Log($"Scarecrow detected near crop {v.X} {v.Y}: {scarecrowString}");
                                     return false;
                                 }
                             }

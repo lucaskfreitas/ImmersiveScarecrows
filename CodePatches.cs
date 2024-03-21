@@ -223,51 +223,80 @@ namespace ImmersiveScarecrows
                 };
             }
         }
+
         [HarmonyPatch(typeof(Farm), nameof(Farm.addCrows))]
         public class Farm_addCrows_Patch
         {
-            public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            public static bool Prefix(Farm __instance)
             {
-                SMonitor.Log($"Transpiling Farm.addCrows");
+                if (!Config.EnableMod)
+                    return true;
 
-                var codes = new List<CodeInstruction>(instructions);
-                bool found1 = false;
-                bool found2 = false;
-                for (int i = 0; i < codes.Count; i++)
+                int num = 0;
+                foreach (KeyValuePair<Vector2, TerrainFeature> pair in __instance.terrainFeatures.Pairs)
                 {
-                    if (!found1 && i < codes.Count - 7 && codes[i].opcode == OpCodes.Call && codes[i].operand  is MethodInfo && (MethodInfo)codes[i].operand == AccessTools.PropertyGetter(typeof(KeyValuePair<Vector2, TerrainFeature>), nameof(KeyValuePair<Vector2, TerrainFeature>.Key)) && codes[i + 1].opcode == OpCodes.Stloc_S && codes[i + 7].opcode == OpCodes.Brfalse)
+                    if (pair.Value is HoeDirt hoeDirt && hoeDirt.crop != null)
                     {
-                        SMonitor.Log("Adding check for scarecrow at vector");
-                        codes.Insert(i + 2, codes[i + 7].Clone());
-                        codes.Insert(i + 2, new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ModEntry), nameof(ModEntry.IsNoScarecrowInRange))));
-                        codes.Insert(i + 2, new CodeInstruction(OpCodes.Ldloc_S, codes[i + 1].operand));
-                        codes.Insert(i + 2, new CodeInstruction(OpCodes.Ldarg_0));
-                        i += 11;
-                        found1 = true;
+                        num++;
                     }
-                    if (!found2 && i < codes.Count - 5 && codes[i].opcode == OpCodes.Ldloca_S  && codes[i + 1].opcode == OpCodes.Call && codes[i + 1].operand is MethodInfo && (MethodInfo)codes[i + 1].operand == AccessTools.PropertyGetter(typeof(KeyValuePair<Vector2, Object>), nameof(KeyValuePair<Vector2, Object>.Value)) && codes[i + 2].opcode == OpCodes.Ldfld && (FieldInfo)codes[i + 2].operand == AccessTools.Field(typeof(Object), nameof(Object.bigCraftable)) && codes[i + 4].opcode == OpCodes.Brfalse_S)
-                    {
-                        SMonitor.Log("Removing big craftable check");
-                        codes[i].opcode = OpCodes.Nop;
-                        codes[i + 1].opcode = OpCodes.Nop;
-                        codes[i + 2].opcode = OpCodes.Nop;
-                        codes[i + 3].opcode = OpCodes.Nop;
-                        codes[i + 4].opcode = OpCodes.Nop;
-                        codes[i].operand = null;
-                        codes[i + 1].operand = null;
-                        codes[i + 2].operand = null;
-                        codes[i + 3].operand = null;
-                        codes[i + 4].operand = null;
-                        i += 4;
-                        found2 = true;
-                    }
-                    if (found1 && found2)
-                        break;
                 }
 
-                return codes.AsEnumerable();
+                List<Vector2> list = new List<Vector2>();
+                foreach (KeyValuePair<Vector2, Object> pair2 in __instance.objects.Pairs)
+                {
+                    if (pair2.Value.IsScarecrow())
+                    {
+                        list.Add(pair2.Key);
+                    }
+                }
+
+                int num2 = Math.Min(4, num / 16);
+                for (int i = 0; i < num2; i++)
+                {
+                    if (!(Game1.random.NextDouble() < 0.3))
+                    {
+                       continue;
+                    }
+
+                    for (int j = 0; j < 10; j++)
+                    {
+                        if (!Utility.TryGetRandom(__instance.terrainFeatures, out var key, out var value) || !(value is HoeDirt hoeDirt2) || (int)hoeDirt2.crop?.currentPhase <= 1)
+                        {
+                            continue;
+                        }
+
+                        bool flag = false;
+                        foreach (Vector2 item in list)
+                        {
+                            int radiusForScarecrow = __instance.objects[item].GetRadiusForScarecrow();
+                            if (Vector2.Distance(item, key) < (float)radiusForScarecrow)
+                            {
+                                flag = true;
+                                __instance.objects[item].SpecialVariable++;
+                                break;
+                            }
+                        }
+
+                        if (!flag && IsNoScarecrowInRange(__instance, key))
+                        {
+                            hoeDirt2.destroyCrop(showAnimation: false);
+
+                            if (__instance.critters == null && (bool)__instance.isOutdoors)
+                            {
+                                __instance.critters = new List<StardewValley.BellsAndWhistles.Critter>();
+                            }
+
+                            __instance.critters.Add(new StardewValley.BellsAndWhistles.Crow((int)key.X, (int)key.Y));
+                        }
+
+                        break;
+                    }
+                }
+
+                return false;
             }
         }
+
         public static bool Modded_Farm_AddCrows_Prefix(ref bool __result)
         {
             SMonitor.Log("Disabling addCrows prefix for Prismatic Tools and Radioactive tools");
