@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Graphics.PackedVector;
@@ -255,7 +255,7 @@ namespace ImmersiveScarecrows
 
                     for (int j = 0; j < 10; j++)
                     {
-                        if (!Utility.TryGetRandom(__instance.terrainFeatures, out var key, out var value) || !(value is HoeDirt hoeDirt2) || (int)hoeDirt2.crop?.currentPhase <= 1)
+                        if (!Utility.TryGetRandom(__instance.terrainFeatures, out var key, out var value) || !(value is HoeDirt hoeDirt2) || hoeDirt2.crop?.currentPhase.Value <= 1)
                         {
                             continue;
                         }
@@ -276,7 +276,7 @@ namespace ImmersiveScarecrows
                         {
                             hoeDirt2.destroyCrop(showAnimation: false);
 
-                            if (__instance.critters == null && (bool)__instance.isOutdoors)
+                            if (__instance.critters == null && __instance.IsOutdoors)
                             {
                                 __instance.critters = new List<StardewValley.BellsAndWhistles.Critter>();
                             }
