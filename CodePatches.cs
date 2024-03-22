@@ -247,7 +247,7 @@ namespace ImmersiveScarecrows
                 {
                     for (int i = 0; i < 4; i++)
                     {
-                        if (__instance.terrainFeatures[tile].modData.TryGetValue(scarecrowKey + i, out var scarecrowItemId))
+                        if (__instance.terrainFeatures.TryGetValue(tile, out var tf) && tf.modData.ContainsKey(scarecrowKey + i))
                         {
                             __result = 0.0;
                             return false;
