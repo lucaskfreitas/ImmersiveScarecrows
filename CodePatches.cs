@@ -1,4 +1,4 @@
-using HarmonyLib;
+﻿using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Graphics.PackedVector;
@@ -107,6 +107,46 @@ namespace ImmersiveScarecrows
                 return false;
             }
         }
+
+        [HarmonyPatch(typeof(GameLocation), "initNetFields")]
+        public class GameLocation_initNetFields_Patch
+        {
+            public static void Postfix(GameLocation __instance)
+            {
+                if (!Config.EnableMod)
+                    return;
+                __instance.terrainFeatures.OnValueRemoved += delegate (Vector2 tileLocation, TerrainFeature tf)
+                {
+                    if (tf is not HoeDirt)
+                        return;
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (tf.modData.TryGetValue(scarecrowKey + i, out var scarecrowItemId))
+                        {
+                            SMonitor.Log("A scarecrow is being deleted! You can retrieve it from the Lost and Found.", LogLevel.Warn);
+                            try
+                            {
+                                var bigCraftableData = Game1.bigCraftableData[scarecrowItemId];
+                                var name = StardewValley.TokenizableStrings.TokenParser.ParseText(bigCraftableData.DisplayName);
+                                var description = StardewValley.TokenizableStrings.TokenParser.ParseText(bigCraftableData.Description);
+
+                                SMonitor.Log($"Scarecrow: {name} - {description}", LogLevel.Warn);
+                                SMonitor.Log($"Scarecrow Tile: {tileLocation}", LogLevel.Warn);
+
+                                var scarecrowObject = new Object(Vector2.Zero, scarecrowItemId);
+                                Game1.player.team.returnedDonations.Add(scarecrowObject);
+                                Game1.player.team.newLostAndFoundItems.Value = true;
+                            }
+                            catch (Exception ex)
+                            {
+                                SMonitor.Log($"Error occurred when trying to save deleted scarecrow to Lost and Found: {ex}", LogLevel.Error);
+                            }
+                        }
+                    }
+                };
+            }
+        }
+
         [HarmonyPatch(typeof(HoeDirt), nameof(HoeDirt.DrawOptimized))]
         public class HoeDirt_DrawOptimized_Patch
         {
