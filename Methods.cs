@@ -247,6 +247,14 @@ namespace ImmersiveScarecrows
                                 if(tiles.Contains(v))
                                 {
                                     SMonitor.Log($"Scarecrow detected near crop {v.X} {v.Y}: {scarecrowString}");
+
+                                    int currentScaredCount = 0;
+                                    if (kvp.Value.modData.TryGetValue(scaredKey + i, out string currentScaredCountStr))
+                                    {
+                                        int.TryParse(currentScaredCountStr, out currentScaredCount);
+                                    }
+
+                                    kvp.Value.modData[scaredKey + i] = (currentScaredCount + 1).ToString();
                                     return false;
                                 }
                             }
