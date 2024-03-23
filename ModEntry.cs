@@ -15,15 +15,11 @@ namespace ImmersiveScarecrows
     /// <summary>The mod entry point.</summary>
     public partial class ModEntry : Mod
     {
-
         public static IMonitor SMonitor;
         public static IModHelper SHelper;
         public static ModConfig Config;
-
         public static ModEntry context;
-
         public static object atApi;
-
         public static string prefixKey = "aedenthorn.ImmersiveScarecrows/";
         public static string scarecrowKey = "aedenthorn.ImmersiveScarecrows/scarecrow";
         public static string scaredKey = "aedenthorn.ImmersiveScarecrows/scared";
@@ -31,7 +27,6 @@ namespace ImmersiveScarecrows
         public static string guidKey = "aedenthorn.ImmersiveScarecrows/guid";
         public static string altTexturePrefix = "aedenthorn.ImmersiveScarecrows/AlternativeTexture";
         public static string altTextureKey = "AlternativeTexture";
-
         public static Dictionary<string, Object> scarecrowDict = new();
 
         /// <summary>The mod entry point, called after the mod is first loaded.</summary>
@@ -50,7 +45,7 @@ namespace ImmersiveScarecrows
             Helper.Events.Input.ButtonPressed += Input_ButtonPressed;
             Helper.Events.Display.RenderedWorld += Display_RenderedWorld;
 
-            var harmony = new Harmony(ModManifest.UniqueID);
+            Harmony harmony = new(ModManifest.UniqueID);
             harmony.PatchAll();
 
             HarmonyMethod prefix = new(typeof(ModEntry), nameof(ModEntry.Modded_Farm_AddCrows_Prefix));
@@ -79,21 +74,39 @@ namespace ImmersiveScarecrows
 
         private void Display_RenderedWorld(object sender, StardewModdingAPI.Events.RenderedWorldEventArgs e)
         {
-            if (!Config.EnableMod || !Context.IsPlayerFree || !Helper.Input.IsDown(Config.ShowRangeButton) || Game1.currentLocation?.terrainFeatures?.TryGetValue(Game1.currentCursorTile, out var tf) != true || tf is not HoeDirt)
+            if (!Config.EnableMod || !Context.IsPlayerFree || !Helper.Input.IsDown(Config.ShowRangeButton)
+                || Game1.currentLocation?.terrainFeatures?.TryGetValue(Game1.currentCursorTile, out TerrainFeature tf) != true
+                || tf is not HoeDirt)
+            {
                 return;
-            var which = GetMouseCorner();
-            var scarecrowTile = Game1.currentCursorTile;
+            }
+
+            int which = GetMouseCorner();
+            Vector2 scarecrowTile = Game1.currentCursorTile;
+
             if (!GetScarecrowTileBool(Game1.currentLocation, ref scarecrowTile, ref which, out string str))
                 return;
+
             if (!Game1.currentLocation.terrainFeatures.TryGetValue(scarecrowTile, out tf))
                 return;
-            var obj = GetScarecrow(tf, which);
+
+            Object obj = GetScarecrow(tf, which);
             if(obj is not null)
             {
-                var tiles = GetScarecrowTiles(scarecrowTile, which, obj.GetRadiusForScarecrow());
-                foreach (var tile in tiles)
+                List<Vector2> tiles = GetScarecrowTiles(scarecrowTile, which, obj.GetRadiusForScarecrow());
+                foreach (Vector2 tile in tiles)
                 {
-                    e.SpriteBatch.Draw(Game1.mouseCursors, Game1.GlobalToLocal(new Vector2(tile.X * 64, tile.Y * 64)), new Rectangle?(new Rectangle(194, 388, 16, 16)), Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.01f);
+                    e.SpriteBatch.Draw(
+                        Game1.mouseCursors,
+                        Game1.GlobalToLocal(new Vector2(tile.X * 64, tile.Y * 64)),
+                        new Rectangle?(new Rectangle(194, 388, 16, 16)),
+                        Color.White,
+                        0f,
+                        Vector2.Zero,
+                        4f,
+                        SpriteEffects.None,
+                        0.01f
+                    );
                 }
             }
         }
@@ -105,10 +118,10 @@ namespace ImmersiveScarecrows
 
             if(Context.IsPlayerFree && Config.Debug && e.Button == SButton.X)
             {
-
                 Game1.getFarm().addCrows();
                 Monitor.Log("Adding crows");
             }
+
             if (e.Button == Config.PickupButton && Context.CanPlayerMove)
             {
                 int which = GetMouseCorner();
@@ -129,7 +142,7 @@ namespace ImmersiveScarecrows
             atApi = Helper.ModRegistry.GetApi("PeacefulEnd.AlternativeTextures");
 
             // get Generic Mod Config Menu's API (if it's installed)
-            var configMenu = Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
+            IGenericModConfigMenuApi configMenu = Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
             if (configMenu is null)
                 return;
 
@@ -146,12 +159,14 @@ namespace ImmersiveScarecrows
                 getValue: () => Config.EnableMod,
                 setValue: value => Config.EnableMod = value
             );
+
             configMenu.AddBoolOption(
                 mod: ModManifest,
                 name: () => "Show Range When Placing",
                 getValue: () => Config.ShowRangeWhenPlacing,
                 setValue: value => Config.ShowRangeWhenPlacing = value
             );
+
             configMenu.AddKeybind(
                 mod: ModManifest,
                 name: () => "Pickup Key",
@@ -170,34 +185,48 @@ namespace ImmersiveScarecrows
                 mod: ModManifest,
                 name: () => "Scale",
                 getValue: () => Config.Scale + "",
-                setValue: delegate (string value) { if (float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out float f)) { Config.Scale = f; } }
+                setValue: delegate (string value)
+                {
+                    if (float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out float f))
+                    {
+                        Config.Scale = f;
+                    }
+                }
             );
+
             configMenu.AddTextOption(
                 mod: ModManifest,
                 name: () => "Alpha",
                 getValue: () => Config.Alpha + "",
-                setValue: delegate (string value) { if (float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out float f)) { Config.Alpha = f; } }
+                setValue: delegate (string value)
+                {
+                    if (float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out float f))
+                    {
+                        Config.Alpha = f;
+                    }
+                }
             );
+
             configMenu.AddNumberOption(
                 mod: ModManifest,
                 name: () => "Offset X",
                 getValue: () => Config.DrawOffsetX,
                 setValue: value => Config.DrawOffsetX = value
             );
+
             configMenu.AddNumberOption(
                 mod: ModManifest,
                 name: () => "Offset Y",
                 getValue: () => Config.DrawOffsetY,
                 setValue: value => Config.DrawOffsetY = value
             );
+
             configMenu.AddNumberOption(
                 mod: ModManifest,
                 name: () => "Offset Z",
                 getValue: () => Config.DrawOffsetZ,
                 setValue: value => Config.DrawOffsetZ = value
             );
-
         }
-
     }
 }

@@ -1,14 +1,13 @@
-﻿
-using HarmonyLib;
+﻿using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
+using StardewValley.Menus;
 using StardewValley.TerrainFeatures;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using xTile.Tiles;
 using Object = StardewValley.Object;
 
 namespace ImmersiveScarecrows
@@ -20,7 +19,7 @@ namespace ImmersiveScarecrows
             if (!tf.modData.TryGetValue(scarecrowKey + which, out string scarecrowItemId))
                 return null;
 
-            var obj = new Object(Vector2.Zero, scarecrowItemId);
+            Object obj = new(Vector2.Zero, scarecrowItemId);
 
             if (atApi is not null)
             {
@@ -33,11 +32,13 @@ namespace ImmersiveScarecrows
                     }
                 }
             }
+
             if (!tf.modData.TryGetValue(guidKey + which, out var guid))
             {
                 guid = Guid.NewGuid().ToString();
                 tf.modData[guidKey + which] = guid;
             }
+
             scarecrowDict[guid] = obj;
 
             return obj;
@@ -45,17 +46,13 @@ namespace ImmersiveScarecrows
 
         private static Vector2 GetScarecrowCorner(int i)
         {
-            switch (i)
+            return i switch
             {
-                case 0:
-                    return new Vector2(-1, -1);
-                case 1:
-                    return new Vector2(1, -1);
-                case 2:
-                    return new Vector2(-1, 1);
-                default:
-                    return new Vector2(1, 1);
-            }
+                0 => new Vector2(-1, -1),
+                1 => new Vector2(1, -1),
+                2 => new Vector2(-1, 1),
+                _ => new Vector2(1, 1),
+            };
         }
 
         private static int GetMouseCorner()
@@ -86,7 +83,8 @@ namespace ImmersiveScarecrows
             }
         }
 
-        private static bool GetScarecrowTileBool(GameLocation location, ref Vector2 tile, ref int which, out string scarecrowString)
+        private static bool GetScarecrowTileBool(GameLocation location, ref Vector2 tile,
+            ref int which, out string scarecrowString)
         {
             if ((scarecrowString = TileScarecrowString(location, tile, which)) is not null)
             { 
@@ -118,9 +116,11 @@ namespace ImmersiveScarecrows
                         dict.Add(0, new Vector2(1, 1));
                         break;
                 }
+
                 foreach (var kvp in dict)
                 {
                     var newTile = tile + kvp.Value;
+
                     if ((scarecrowString = TileScarecrowString(location, newTile, kvp.Key)) is not null)
                     {
                         tile = newTile;
@@ -129,17 +129,22 @@ namespace ImmersiveScarecrows
                     }
                 }
             }
+
             return false;
         }
 
         private static string TileScarecrowString(GameLocation location, Vector2 tile, int which)
         {
-            return (location.terrainFeatures.TryGetValue(tile, out var tf) && tf.modData.TryGetValue(scarecrowKey + which, out var scarecrowString)) ? scarecrowString : null;
+            return (
+                location.terrainFeatures.TryGetValue(tile, out var tf)
+                && tf.modData.TryGetValue(scarecrowKey + which, out var scarecrowString)) ? scarecrowString : null;
         }
 
         private static bool ReturnScarecrow(Farmer who, GameLocation location, Vector2 placementTile, int which)
         {
-            if (location.terrainFeatures.TryGetValue(placementTile, out var tf) && tf is HoeDirt && TryReturnScarecrow(who, location, tf, placementTile, which))
+            if (location.terrainFeatures.TryGetValue(placementTile, out var tf)
+                && tf is HoeDirt
+                && TryReturnScarecrow(who, tf, which))
             { 
                 return true; 
             }
@@ -169,33 +174,38 @@ namespace ImmersiveScarecrows
                         dict.Add(0, new Vector2(1, 1));
                         break;
                 }
+
                 foreach (var kvp in dict)
                 {
                     if (!location.terrainFeatures.TryGetValue(placementTile + kvp.Value, out var otf))
                         continue;
-                    if (TryReturnScarecrow(who, location, otf, placementTile + kvp.Value, kvp.Key))
+
+                    if (TryReturnScarecrow(who, otf, kvp.Key))
                         return true;
                 }
             }
+
             return false;
         }
 
-        private static bool TryReturnScarecrow(Farmer who, GameLocation location, TerrainFeature tf, Vector2 placementTile, int which)
+        private static bool TryReturnScarecrow(Farmer who, TerrainFeature tf, int which)
         {
-            Object scarecrow = null;
-            if (tf.modData.TryGetValue(scarecrowKey + which, out var scarecrowString))
+            if (tf.modData.ContainsKey(scarecrowKey + which))
             {
-                scarecrow = GetScarecrow(tf, which);
+                Object scarecrow = GetScarecrow(tf, which);
                 tf.modData.Remove(scarecrowKey + which);
                 tf.modData.Remove(scaredKey + which);
                 tf.modData.Remove(guidKey + which);
+
                 if (scarecrow is not null && !who.addItemToInventoryBool(scarecrow))
                 {
                     who.currentLocation.debris.Add(new Debris(scarecrow, who.Position));
                 }
+
                 SMonitor.Log($"Returning {scarecrow.Name}");
                 return true;
             }
+
             return false;
         }
 
@@ -204,6 +214,7 @@ namespace ImmersiveScarecrows
             Vector2 start = tileLocation + new Vector2(-1, -1) * (radius - 2);
             Vector2 position = tileLocation + GetScarecrowCorner(which) * 0.5f;
             List<Vector2> list = new();
+
             switch (which)
             {
                 case 0:
@@ -216,19 +227,22 @@ namespace ImmersiveScarecrows
                     start += new Vector2(-1, 0);
                     break;
             }
+
             var diameter = (radius - 1) * 2;
             for (int x = 0; x < diameter; x++)
             {
                 for (int y = 0; y < diameter; y++)
                 {
                     Vector2 tile = start + new Vector2(x, y);
+
                     if ((int)Math.Ceiling(Vector2.Distance(position, tile)) <= radius)
                         list.Add(tile);
                 }
             }
-            return list;
 
+            return list;
         }
+
         private static bool IsNoScarecrowInRange(Farm f, Vector2 v)
         {
             SMonitor.Log("Checking for scarecrows near crop");
@@ -251,7 +265,7 @@ namespace ImmersiveScarecrows
                                     int currentScaredCount = 0;
                                     if (kvp.Value.modData.TryGetValue(scaredKey + i, out string currentScaredCountStr))
                                     {
-                                        int.TryParse(currentScaredCountStr, out currentScaredCount);
+                                        _ = int.TryParse(currentScaredCountStr, out currentScaredCount);
                                     }
 
                                     kvp.Value.modData[scaredKey + i] = (currentScaredCount + 1).ToString();
@@ -262,6 +276,7 @@ namespace ImmersiveScarecrows
                     }
                 }
             }
+
             return true;
         }
 
@@ -270,23 +285,40 @@ namespace ImmersiveScarecrows
             if (atApi is null)
                 return;
 
-            var textureMgr = AccessTools.Field(atApi.GetType().Assembly.GetType("AlternativeTextures.AlternativeTextures"), "textureManager").GetValue(null);
+            var textureMgr = AccessTools.Field(atApi.GetType().Assembly.GetType("AlternativeTextures.AlternativeTextures"),
+                "textureManager").GetValue(null);
 
             var modelType = "Craftable";
-            var baseName = AccessTools.Method(atApi.GetType().Assembly.GetType("AlternativeTextures.Framework.Patches.PatchTemplate"), "GetObjectName").Invoke(null, new object[] { obj });
+            var baseName = AccessTools.Method(
+                atApi.GetType().Assembly.GetType("AlternativeTextures.Framework.Patches.PatchTemplate"),
+                    "GetObjectName").Invoke(null, new object[] { obj });
+
             var instanceName = $"{modelType}_{baseName}";
             var instanceSeasonName = $"{instanceName}_{Game1.currentSeason}";
 
-            bool hasAlt = (bool)AccessTools.Method(textureMgr.GetType(), "DoesObjectHaveAlternativeTexture", new System.Type[] { typeof(string) }).Invoke(textureMgr, new object[] { instanceName });
-            bool hasAltSeason = (bool)AccessTools.Method(textureMgr.GetType(), "DoesObjectHaveAlternativeTexture", new System.Type[] { typeof(string) }).Invoke(textureMgr, new object[] { instanceSeasonName });
-            MethodInfo assignModData = AccessTools.Method(atApi.GetType().Assembly.GetType("AlternativeTextures.Framework.Patches.PatchTemplate"), "AssignModData").MakeGenericMethod(typeof(Object));
-            if ((bool)AccessTools.Method(atApi.GetType().Assembly.GetType("AlternativeTextures.Framework.Patches.PatchTemplate"), "HasCachedTextureName").MakeGenericMethod(typeof(Object)).Invoke(null, new object[] { obj, false }))
+            bool hasAlt = (bool)AccessTools.Method(textureMgr.GetType(),
+                "DoesObjectHaveAlternativeTexture",
+                new Type[] { typeof(string) }).Invoke(textureMgr, new object[] { instanceName });
+
+            bool hasAltSeason = (bool)AccessTools.Method(textureMgr.GetType(), "DoesObjectHaveAlternativeTexture",
+                new Type[] { typeof(string) }).Invoke(textureMgr, new object[] { instanceSeasonName });
+
+            MethodInfo assignModData = AccessTools.Method(
+                atApi.GetType().Assembly.GetType("AlternativeTextures.Framework.Patches.PatchTemplate"),
+                "AssignModData").MakeGenericMethod(typeof(Object));
+
+            if ((bool)AccessTools.Method(atApi.GetType().Assembly.GetType(
+                "AlternativeTextures.Framework.Patches.PatchTemplate"), "HasCachedTextureName").MakeGenericMethod(
+                    typeof(Object)).Invoke(null, new object[] { obj, false }))
             {
                 return;
             }
             else if (hasAlt && hasAltSeason)
             {
-                var result = Game1.random.Next(2) > 0 ? assignModData.Invoke(null, new object[] { obj, instanceSeasonName, true, obj.bigCraftable.Value }) : assignModData.Invoke(null, new object[] { obj, instanceName, false, obj.bigCraftable.Value });
+                _ = Game1.random.Next(2) > 0
+                    ? assignModData.Invoke(null, new object[] { obj, instanceSeasonName, true, obj.bigCraftable.Value })
+                    : assignModData.Invoke(null, new object[] { obj, instanceName, false, obj.bigCraftable.Value });
+
                 return;
             }
             else
@@ -304,40 +336,60 @@ namespace ImmersiveScarecrows
                 }
             }
 
-            AccessTools.Method(atApi.GetType().Assembly.GetType("AlternativeTextures.Framework.Patches.PatchTemplate"), "AssignDefaultModData").MakeGenericMethod(typeof(Object)).Invoke(null, new object[] { obj, instanceSeasonName, true, obj.bigCraftable.Value });
+            AccessTools.Method(atApi.GetType().Assembly.GetType("AlternativeTextures.Framework.Patches.PatchTemplate"),
+                "AssignDefaultModData").MakeGenericMethod(typeof(Object)).Invoke(null,
+                    new object[] { obj, instanceSeasonName, true, obj.bigCraftable.Value });
         }
-
 
         private static Texture2D GetAltTextureForObject(Object obj, out Rectangle sourceRect)
         {
             sourceRect = new Rectangle();
             if (!obj.modData.TryGetValue("AlternativeTextureName", out var str))
                 return null;
-            var textureMgr = AccessTools.Field(atApi.GetType().Assembly.GetType("AlternativeTextures.AlternativeTextures"), "textureManager").GetValue(null);
-            var textureModel = AccessTools.Method(textureMgr.GetType(), "GetSpecificTextureModel").Invoke(textureMgr, new object[] { str });
+
+            var textureMgr = AccessTools.Field(atApi.GetType().Assembly.GetType("AlternativeTextures.AlternativeTextures"),
+                "textureManager").GetValue(null);
+
+            var textureModel = AccessTools.Method(textureMgr.GetType(), "GetSpecificTextureModel").Invoke(textureMgr,
+                new object[] { str });
+
             if (textureModel is null)
             {
                 return null;
             }
+
             var textureVariation = int.Parse(obj.modData["AlternativeTextureVariation"]);
-            var modConfig = AccessTools.Field(atApi.GetType().Assembly.GetType("AlternativeTextures.AlternativeTextures"), "modConfig").GetValue(null);
-            if (textureVariation == -1 || (bool)AccessTools.Method(modConfig.GetType(), "IsTextureVariationDisabled").Invoke(modConfig, new object[] { AccessTools.Method(textureModel.GetType(), "GetId").Invoke(textureModel, new object[] { }), textureVariation }))
+            var modConfig = AccessTools.Field(atApi.GetType().Assembly.GetType("AlternativeTextures.AlternativeTextures"),
+                "modConfig").GetValue(null);
+
+            if (textureVariation == -1 || (bool)AccessTools.Method(modConfig.GetType(), "IsTextureVariationDisabled").Invoke(
+                modConfig, new object[] { AccessTools.Method(textureModel.GetType(), "GetId").Invoke(textureModel,
+                    new object[] { }), textureVariation }))
             {
                 return null;
             }
-            var textureOffset = (int)AccessTools.Method(textureModel.GetType(), "GetTextureOffset").Invoke(textureModel, new object[] { textureVariation });
+
+            var textureOffset = (int)AccessTools.Method(textureModel.GetType(), "GetTextureOffset").Invoke(textureModel,
+                new object[] { textureVariation });
 
             // Get the current X index for the source tile
-            var xTileOffset = obj.modData.ContainsKey("AlternativeTextureSheetId") ? obj.ParentSheetIndex - int.Parse(obj.modData["AlternativeTextureSheetId"]) : 0;
+            var xTileOffset = obj.modData.ContainsKey("AlternativeTextureSheetId")
+                ? obj.ParentSheetIndex - int.Parse(obj.modData["AlternativeTextureSheetId"])
+                : 0;
+
             if (obj.showNextIndex.Value)
             {
                 xTileOffset += 1;
             }
 
             // Override xTileOffset if AlternativeTextureModel has an animation
-            if ((bool)AccessTools.Method(textureModel.GetType(), "HasAnimation").Invoke(textureModel, new object[] { textureVariation }))
+            if ((bool)AccessTools.Method(textureModel.GetType(), "HasAnimation").Invoke(textureModel,
+                new object[] { textureVariation }))
             {
-                if (!obj.modData.ContainsKey("AlternativeTextureCurrentFrame") || !obj.modData.ContainsKey("AlternativeTextureFrameIndex") || !obj.modData.ContainsKey("AlternativeTextureFrameDuration") || !obj.modData.ContainsKey("AlternativeTextureElapsedDuration"))
+                if (!obj.modData.ContainsKey("AlternativeTextureCurrentFrame")
+                    || !obj.modData.ContainsKey("AlternativeTextureFrameIndex")
+                    || !obj.modData.ContainsKey("AlternativeTextureFrameDuration")
+                    || !obj.modData.ContainsKey("AlternativeTextureElapsedDuration"))
                 {
                     var animationData = AccessTools.Method(textureModel.GetType(), "GetAnimationDataAtIndex").Invoke(textureModel, new object[] { textureVariation, 0 });
                     obj.modData["AlternativeTextureCurrentFrame"] = "0";
@@ -353,28 +405,36 @@ namespace ImmersiveScarecrows
 
                 if (elapsedDuration >= frameDuration)
                 {
-                    var animationDataList = (IEnumerable<object>)AccessTools.Method(textureModel.GetType(), "GetAnimationData").Invoke(textureModel, new object[] { textureVariation });
+                    var animationDataList = (IEnumerable<object>)AccessTools.Method(textureModel.GetType(),
+                        "GetAnimationData").Invoke(textureModel, new object[] { textureVariation });
                     frameIndex = frameIndex + 1 >= animationDataList.Count() ? 0 : frameIndex + 1;
 
-                    var animationData = AccessTools.Method(textureModel.GetType(), "GetAnimationDataAtIndex").Invoke(textureModel, new object[] { textureVariation, frameIndex });
+                    var animationData = AccessTools.Method(textureModel.GetType(), "GetAnimationDataAtIndex").Invoke(
+                        textureModel, new object[] { textureVariation, frameIndex });
+
                     currentFrame = (int)AccessTools.Property(animationData.GetType(), "Frame").GetValue(animationData);
 
                     obj.modData["AlternativeTextureCurrentFrame"] = currentFrame.ToString();
                     obj.modData["AlternativeTextureFrameIndex"] = frameIndex.ToString();
-                    obj.modData["AlternativeTextureFrameDuration"] = AccessTools.Property(animationData.GetType(), "Duration").GetValue(animationData).ToString();
+                    obj.modData["AlternativeTextureFrameDuration"] = AccessTools.Property(animationData.GetType(),
+                        "Duration").GetValue(animationData).ToString();
                     obj.modData["AlternativeTextureElapsedDuration"] = "0";
                 }
                 else
                 {
-                    obj.modData["AlternativeTextureElapsedDuration"] = (elapsedDuration + Game1.currentGameTime.ElapsedGameTime.Milliseconds).ToString();
+                    obj.modData["AlternativeTextureElapsedDuration"] =
+                        (elapsedDuration + Game1.currentGameTime.ElapsedGameTime.Milliseconds).ToString();
                 }
 
                 xTileOffset = currentFrame;
             }
+
             var w = (int)AccessTools.Property(textureModel.GetType(), "TextureWidth").GetValue(textureModel);
             var h = (int)AccessTools.Property(textureModel.GetType(), "TextureHeight").GetValue(textureModel);
             sourceRect = new Rectangle(xTileOffset * w, textureOffset, w, h);
-            return (Texture2D)AccessTools.Method(textureModel.GetType(), "GetTexture").Invoke(textureModel, new object[] { textureVariation });
+
+            return (Texture2D)AccessTools.Method(textureModel.GetType(), "GetTexture").Invoke(
+                textureModel, new object[] { textureVariation });
         }
     }
 }

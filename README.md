@@ -4,7 +4,7 @@ This project is a Fork of [Immersive Scarecrows](https://github.com/aedenthorn/S
 
 The purpose of this fork is basically to make it compatible with version 1.6 of SV, which was released on March 19, 2024.
 
-## ﻿Overview
+## Overview
 
 With this mod you can place scarecrows directly onto tilled soil tiles. Scarecrows will be placed on the corner closest to the mouse cursor and protect crops surrounding it.
 

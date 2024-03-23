@@ -14,6 +14,5 @@ namespace ImmersiveScarecrows
         public int DrawOffsetZ { get; set; } = 0;
         public SButton PickupButton { get; set; } = SButton.E;
         public SButton ShowRangeButton { get; set; } = SButton.LeftAlt;
-
     }
 }
