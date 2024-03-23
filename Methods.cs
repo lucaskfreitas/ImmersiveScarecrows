@@ -2,7 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
-using StardewValley.Menus;
+using StardewValley.GameData.BigCraftables;
 using StardewValley.TerrainFeatures;
 using System;
 using System.Collections.Generic;
@@ -14,9 +14,29 @@ namespace ImmersiveScarecrows
 {
     public partial class ModEntry
     {
+        private static string GetItemIdFromLegacyString(string legacyScarecrowString)
+        {
+            // For save files created before Stardew Valley 1.6, this will still be on the old format.
+            string scarecrowItemName = legacyScarecrowString.Split('/')[0];
+            KeyValuePair<string, BigCraftableData> scarecrowBcData =
+                Game1.bigCraftableData.FirstOrDefault(t => t.Value.Name == scarecrowItemName);
+
+            if (Equals(scarecrowBcData, default))
+                return null;
+
+            return scarecrowBcData.Key;
+        }
+
         private static Object GetScarecrow(TerrainFeature tf, int which)
         {
-            if (!tf.modData.TryGetValue(scarecrowKey + which, out string scarecrowItemId))
+            if (!tf.modData.TryGetValue(scarecrowKey + which, out string scarecrowString))
+                return null;
+
+            string scarecrowItemId = ItemRegistry.Exists(scarecrowString)
+                ? scarecrowString
+                : GetItemIdFromLegacyString(scarecrowString);
+
+            if (scarecrowItemId is null)
                 return null;
 
             Object obj = new(Vector2.Zero, scarecrowItemId);
