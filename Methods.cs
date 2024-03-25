@@ -318,10 +318,10 @@ namespace ImmersiveScarecrows
 
             bool hasAlt = (bool)AccessTools.Method(textureMgr.GetType(),
                 "DoesObjectHaveAlternativeTexture",
-                new Type[] { typeof(string) }).Invoke(textureMgr, new object[] { instanceName });
+                new Type[] { typeof(string), typeof(bool) }).Invoke(textureMgr, new object[] { instanceName, false });
 
             bool hasAltSeason = (bool)AccessTools.Method(textureMgr.GetType(), "DoesObjectHaveAlternativeTexture",
-                new Type[] { typeof(string) }).Invoke(textureMgr, new object[] { instanceSeasonName });
+                new Type[] { typeof(string), typeof(bool) }).Invoke(textureMgr, new object[] { instanceSeasonName, false });
 
             MethodInfo assignModData = AccessTools.Method(
                 atApi.GetType().Assembly.GetType("AlternativeTextures.Framework.Patches.PatchTemplate"),
