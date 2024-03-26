@@ -401,40 +401,24 @@ namespace ImmersiveScarecrows
         [HarmonyPatch(typeof(Axe), nameof(Axe.DoFunction))]
         public class Axe_DoFunction_Patch
         {
-            public static bool Prefix(GameLocation location, int x, int y, int power, Farmer who)
+            public static bool Prefix(GameLocation location, int x, int y, int power)
             {
                 if (!Config.EnableMod || power > 1)
                     return true;
 
-                int which = GetMouseCorner();
-
-                if (ReturnScarecrow(Game1.player, location, Game1.currentCursorTile, which))
-                {
-                    location.playSound("axechop");
-                    return false;
-                }
-
-                return true;
+                return HandleAxeAndPickaxeFunction(location, x, y);
             }
         }
 
         [HarmonyPatch(typeof(Pickaxe), nameof(Pickaxe.DoFunction))]
         public class Pickaxe_DoFunction_Patch
         {
-            public static bool Prefix(GameLocation location, int x, int y, int power, Farmer who)
+            public static bool Prefix(GameLocation location, int x, int y)
             {
                 if (!Config.EnableMod)
                     return true;
 
-                int which = GetMouseCorner();
-
-                if (ReturnScarecrow(Game1.player, location, Game1.currentCursorTile, which))
-                {
-                    location.playSound("axechop");
-                    return false;
-                }
-
-                return true;
+                return HandleAxeAndPickaxeFunction(location, x, y);
             }
         }
     }

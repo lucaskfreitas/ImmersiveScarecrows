@@ -456,5 +456,40 @@ namespace ImmersiveScarecrows
             return (Texture2D)AccessTools.Method(textureModel.GetType(), "GetTexture").Invoke(
                 textureModel, new object[] { textureVariation });
         }
+        private static bool HandleAxeAndPickaxeFunction(GameLocation location, int x, int y)
+        {
+            int tileX = x / 64;
+            int tileY = y / 64;
+            if (!IsTileNextToScarecrow(location, tileX, tileY))
+                return true;
+
+            if (Game1.currentCursorTile == new Vector2(tileX, tileY))
+            {
+                int which = GetMouseCorner();
+
+                if (ReturnScarecrow(Game1.player, location, Game1.currentCursorTile, which))
+                {
+                    location.playSound("axechop");
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsTileNextToScarecrow(GameLocation location, int x, int y)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                int j = i;
+                Vector2 tile = new(x, y);
+
+                if (GetScarecrowTileBool(location, ref tile, ref j, out _))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }
