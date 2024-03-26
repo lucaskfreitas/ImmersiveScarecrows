@@ -26,6 +26,7 @@ public class WorldEventsHandler
                     try
                     {
                         e.Location.terrainFeatures.Add(removed.Key, removed.Value);
+                        break;
                     }
                     catch (Exception ex)
                     {
