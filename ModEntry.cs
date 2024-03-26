@@ -123,7 +123,8 @@ namespace ImmersiveScarecrows
                 Monitor.Log("Adding crows");
             }
 
-            if (e.Button == Config.PickupButton && Context.CanPlayerMove)
+            if (e.Button == Config.PickupButton && Context.CanPlayerMove
+                && Utility.withinRadiusOfPlayer((int)e.Cursor.AbsolutePixels.X, (int)e.Cursor.AbsolutePixels.Y, 1, Game1.player))
             {
                 int which = GetMouseCorner();
                 if (ReturnScarecrow(Game1.player, Game1.currentLocation, Game1.currentCursorTile, which))
