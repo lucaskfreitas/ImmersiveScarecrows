@@ -10,7 +10,9 @@ using StardewValley.TokenizableStrings;
 using StardewValley.Tools;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using xTile.Dimensions;
+using xTile.Layers;
 using Color = Microsoft.Xna.Framework.Color;
 using Object = StardewValley.Object;
 using Rectangle = Microsoft.Xna.Framework.Rectangle;
@@ -360,6 +362,95 @@ namespace ImmersiveScarecrows
                         ? SpriteEffects.FlipHorizontally
                         : SpriteEffects.None, 0.02f
                 );
+
+                return false;
+            }
+        }
+
+        [HarmonyPatch(typeof(GameLocation), nameof(GameLocation.HandleGrassGrowth))]
+        public class GameLocation_HandleGrassGrowth_Patch
+        {
+            public static bool Prefix(GameLocation __instance, int dayOfMonth)
+            {
+                if (!Config.EnableMod)
+                    return true;
+
+                if (dayOfMonth == 1)
+                {
+                    if (__instance is Farm || __instance.HasMapPropertyWithValue("ClearEmptyDirtOnNewMonth"))
+                    {
+                        __instance.terrainFeatures.RemoveWhere
+                        (
+                            (KeyValuePair<Vector2, TerrainFeature> pair) =>
+                                pair.Value is HoeDirt hoeDirt
+                                && hoeDirt.crop == null
+                                && Game1.random.NextDouble() < 0.8
+                                && !hoeDirt.modData.Keys.Any(t => t.StartsWith(scarecrowKey))
+                        );
+                    }
+
+                    if (__instance is Farm || __instance.HasMapPropertyWithValue("SpawnDebrisOnNewMonth"))
+                    {
+                        __instance.spawnWeedsAndStones(20, weedsOnly: false, spawnFromOldWeeds: false);
+                    }
+
+                    if (Game1.IsSpring && Game1.stats.DaysPlayed > 1)
+                    {
+                        if (__instance is Farm || __instance.HasMapPropertyWithValue("SpawnDebrisOnNewYear"))
+                        {
+                            __instance.spawnWeedsAndStones(40, weedsOnly: false, spawnFromOldWeeds: false);
+                            __instance.spawnWeedsAndStones(40, weedsOnly: true, spawnFromOldWeeds: false);
+                        }
+
+                        if (__instance is Farm || __instance.HasMapPropertyWithValue("SpawnRandomGrassOnNewYear"))
+                        {
+                            for (int i = 0; i < 15; i++)
+                            {
+                                int num = Game1.random.Next(__instance.map.DisplayWidth / 64);
+                                int num2 = Game1.random.Next(__instance.map.DisplayHeight / 64);
+                                Vector2 vector = new Vector2(num, num2);
+                                __instance.objects.TryGetValue(vector, out var value);
+                                if (value == null && __instance.doesTileHaveProperty(num, num2, "Diggable", "Back") != null && !__instance.IsNoSpawnTile(vector) && __instance.isTileLocationOpen(new Location(num, num2)) && !__instance.IsTileOccupiedBy(vector) && !__instance.isWaterTile(num, num2))
+                                {
+                                    int which = 1;
+                                    if (Game1.whichModFarm?.Id == "MeadowlandsFarm" && Game1.random.NextDouble() < 0.2)
+                                    {
+                                        which = 7;
+                                    }
+
+                                    __instance.terrainFeatures.Add(vector, new Grass(which, 4));
+                                }
+                            }
+
+                            __instance.growWeedGrass(40);
+                        }
+
+                        if (__instance.HasMapPropertyWithValue("SpawnGrassFromPathsOnNewYear"))
+                        {
+                            Layer layer = __instance.map.GetLayer("Paths");
+                            if (layer != null)
+                            {
+                                for (int j = 0; j < layer.LayerWidth; j++)
+                                {
+                                    for (int k = 0; k < layer.LayerHeight; k++)
+                                    {
+                                        Vector2 vector2 = new Vector2(j, k);
+                                        __instance.objects.TryGetValue(vector2, out var value2);
+                                        if (value2 == null && __instance.getTileIndexAt(new Point(j, k), "Paths") == 22 && __instance.isTileLocationOpen(vector2) && !__instance.IsTileOccupiedBy(vector2))
+                                        {
+                                            __instance.terrainFeatures.Add(vector2, new Grass(1, 4));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if ((__instance is Farm || __instance.HasMapPropertyWithValue("EnableGrassSpread")) && (!__instance.IsWinterHere() || __instance.HasMapPropertyWithValue("AllowGrassGrowInWinter")))
+                {
+                    __instance.growWeedGrass(1);
+                }
 
                 return false;
             }
