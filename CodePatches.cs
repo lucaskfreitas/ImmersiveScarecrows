@@ -3,8 +3,10 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
+using StardewValley.GameData.BigCraftables;
 using StardewValley.Objects;
 using StardewValley.TerrainFeatures;
+using StardewValley.TokenizableStrings;
 using StardewValley.Tools;
 using System;
 using System.Collections.Generic;
@@ -133,6 +135,53 @@ namespace ImmersiveScarecrows
 
                 __result = true;
                 return false;
+            }
+        }
+
+        [HarmonyPatch(typeof(GameLocation), "initNetFields")]
+        public class GameLocation_initNetFields_Patch
+        {
+            public static void Postfix(GameLocation __instance)
+            {
+                if (!Config.EnableMod)
+                    return;
+
+                __instance.terrainFeatures.OnValueRemoved += delegate (Vector2 tileLocation, TerrainFeature tf)
+                {
+                    if (tf is not HoeDirt)
+                        return;
+
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (tf.modData.TryGetValue(scarecrowKey + i, out string scarecrowItemId))
+                        {
+                            SMonitor.Log(
+                                "A scarecrow is being deleted! You can retrieve it from the Lost and Found.",
+                                LogLevel.Warn
+                            );
+
+                            try
+                            {
+                                BigCraftableData bigCraftableData = Game1.bigCraftableData[scarecrowItemId];
+                                string name = TokenParser.ParseText(bigCraftableData.DisplayName);
+                                string description = TokenParser.ParseText(bigCraftableData.Description);
+
+                                SMonitor.Log($"Scarecrow: {name} - {description}", LogLevel.Warn);
+                                SMonitor.Log($"Scarecrow Tile: {tileLocation}", LogLevel.Warn);
+
+                                Object scarecrowObject = new(Vector2.Zero, scarecrowItemId);
+                                Game1.player.team.returnedDonations.Add(scarecrowObject);
+                                Game1.player.team.newLostAndFoundItems.Value = true;
+                            }
+                            catch (Exception ex)
+                            {
+                                SMonitor.Log(
+                                    $"Error occurred when trying to save deleted scarecrow " +
+                                    $"to Lost and Found: {ex}", LogLevel.Error);
+                            }
+                        }
+                    }
+                };
             }
         }
 
@@ -313,6 +362,28 @@ namespace ImmersiveScarecrows
                 );
 
                 return false;
+            }
+        }
+
+        [HarmonyPatch(typeof(GameLocation), nameof(GameLocation.GetDirtDecayChance))]
+        public class GameLocation_GetDirtDecayChance_Patch
+        {
+            public static bool Prefix(GameLocation __instance, Vector2 tile, ref double __result)
+            {
+                if (Config.EnableMod)
+                {
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (__instance.terrainFeatures.TryGetValue(tile, out TerrainFeature tf)
+                            && tf.modData.ContainsKey(scarecrowKey + i))
+                        {
+                            __result = 0.0;
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
             }
         }
 

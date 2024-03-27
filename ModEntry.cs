@@ -44,7 +44,6 @@ namespace ImmersiveScarecrows
             Helper.Events.GameLoop.SaveLoaded += GameLoop_SaveLoaded;
             Helper.Events.Input.ButtonPressed += Input_ButtonPressed;
             Helper.Events.Display.RenderedWorld += Display_RenderedWorld;
-            Helper.Events.World.TerrainFeatureListChanged += WorldEventsHandler.TerrainFeatureListChanged;
 
             Harmony harmony = new(ModManifest.UniqueID);
             harmony.PatchAll();
